@@ -1,7 +1,14 @@
 package ua.yandex.prioritymap;
 
 import java.lang.reflect.Array;
-import java.util.*;
+
+import java.util.Arrays;
+import java.util.Collection;
+import java.util.Comparator;
+import java.util.Iterator;
+import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 
 public class PriorityHashMap<K extends Comparable, V> implements Map<K, V> {
     private static final int DEFAULT_INITIAL_CAPACITY = 16;
@@ -10,17 +17,18 @@ public class PriorityHashMap<K extends Comparable, V> implements Map<K, V> {
     private final float loadFactor;
     private Node<K, V>[] table;
     private int size;
-    private Comparator<Entry<K, V>> entryComparator = (firstEntry, secondEntry) -> {
-        K firstKey = firstEntry.getKey();
-        K secondKey = secondEntry.getKey();
-        if (firstKey == null) {
-            return -1;
-        }
-        if (secondKey == null) {
-            return 1;
-        }
-        return firstKey.compareTo(secondKey);
-    };
+    private Comparator<Entry<K, V>> entryComparator =
+            (firstEntry, secondEntry) -> {
+                K firstKey = firstEntry.getKey();
+                K secondKey = secondEntry.getKey();
+                if (firstKey == null) {
+                    return -1;
+                }
+                if (secondKey == null) {
+                    return 1;
+                }
+                return firstKey.compareTo(secondKey);
+            };
 
     static class Node<K extends Comparable, V> implements Map.Entry<K, V> {
         private K key;
@@ -121,7 +129,9 @@ public class PriorityHashMap<K extends Comparable, V> implements Map<K, V> {
 
     @Override
     public boolean containsValue(Object value) {
-        for (Node<K, V> currentNode : table) {
+        Node<K, V> currentNode;
+        for (Node<K, V> node : table) {
+            currentNode = node;
             while (currentNode != null) {
                 V nodeValue = currentNode.value;
                 if (Objects.equals(value, nodeValue)) {
@@ -158,7 +168,7 @@ public class PriorityHashMap<K extends Comparable, V> implements Map<K, V> {
             Node<K, V> nextNode = table[position];
             table[position] = new Node<>(key, value, nextNode);
             size++;
-            return oldValue;
+            return null;
         }
         oldValue = insertionNode.value;
         insertionNode.value = value;
@@ -170,7 +180,9 @@ public class PriorityHashMap<K extends Comparable, V> implements Map<K, V> {
         Node<K, V>[] oldTable = table;
         table = new Node[newSize];
         size = 0;
-        for (Node<K, V> nextNode : oldTable) {
+        Node<K, V> nextNode;
+        for (Node<K, V> node : oldTable) {
+            nextNode = node;
             while (nextNode != null) {
                 putSingleValue(nextNode.key, nextNode.value);
                 nextNode = nextNode.nextNode;
@@ -201,8 +213,11 @@ public class PriorityHashMap<K extends Comparable, V> implements Map<K, V> {
         return removeChild(key, parent, currentNode);
     }
 
-    private V removeChild(Object key, Node<K, V> parent, Node<K, V> child) {
-        for (; ; ) {
+    private V removeChild(Object key, Node<K, V> startParent,
+                          Node<K, V> startChild) {
+        Node<K, V> parent = startParent;
+        Node<K, V> child = startChild;
+        for (;;) {
             if (child == null) {
                 return null;
             }
@@ -235,15 +250,15 @@ public class PriorityHashMap<K extends Comparable, V> implements Map<K, V> {
     @Override
     public Set<K> keySet() {
         K[] keys = (K[]) new Comparable[size];
-        {
-            int insertionIndex = 0;
-            for (Node<K, V> currentNode : table) {
-                while (currentNode != null) {
-                    K nodeKey = currentNode.key;
-                    keys[insertionIndex] = nodeKey;
-                    insertionIndex++;
-                    currentNode = currentNode.nextNode;
-                }
+        int insertionIndex = 0;
+        Node<K, V> currentNode;
+        for (Node<K, V> node : table) {
+            currentNode = node;
+            while (currentNode != null) {
+                K nodeKey = currentNode.key;
+                keys[insertionIndex] = nodeKey;
+                insertionIndex++;
+                currentNode = currentNode.nextNode;
             }
         }
         return new ImmutableFictiveSet<>(keys);
@@ -252,15 +267,15 @@ public class PriorityHashMap<K extends Comparable, V> implements Map<K, V> {
     @Override
     public Collection<V> values() {
         V[] values = (V[]) new Object[size];
-        {
-            int insertionIndex = 0;
-            for (Node<K, V> currentNode : table) {
-                while (currentNode != null) {
-                    V nodeValue = currentNode.value;
-                    values[insertionIndex] = nodeValue;
-                    insertionIndex++;
-                    currentNode = currentNode.nextNode;
-                }
+        int insertionIndex = 0;
+        Node<K, V> currentNode;
+        for (Node<K, V> node : table) {
+            currentNode = node;
+            while (currentNode != null) {
+                V nodeValue = currentNode.value;
+                values[insertionIndex] = nodeValue;
+                insertionIndex++;
+                currentNode = currentNode.nextNode;
             }
         }
         return new ImmutableFictiveSet<>(values);
@@ -269,14 +284,14 @@ public class PriorityHashMap<K extends Comparable, V> implements Map<K, V> {
     @Override
     public Set<Entry<K, V>> entrySet() {
         Entry<K, V>[] entries = (Entry<K, V>[]) new Entry[size];
-        {
-            int insertionIndex = 0;
-            for (Node<K, V> currentNode : table) {
-                while (currentNode != null) {
-                    entries[insertionIndex] = currentNode;
-                    insertionIndex++;
-                    currentNode = currentNode.nextNode;
-                }
+        int insertionIndex = 0;
+        Node<K, V> currentNode;
+        for (Node<K, V> node : table) {
+            currentNode = node;
+            while (currentNode != null) {
+                entries[insertionIndex] = currentNode;
+                insertionIndex++;
+                currentNode = currentNode.nextNode;
             }
         }
         Arrays.sort(entries, entryComparator);
@@ -285,7 +300,9 @@ public class PriorityHashMap<K extends Comparable, V> implements Map<K, V> {
 
     public V peekValueWithPriorityKey() {
         Node<K, V> maxKeyNode = null;
-        for (Node<K, V> currentNode : table) {
+        Node<K, V> currentNode;
+        for (Node<K, V> node : table) {
+            currentNode = node;
             while (currentNode != null) {
                 if (maxKeyNode == null) {
                     if (currentNode.key == null) {
@@ -411,9 +428,9 @@ public class PriorityHashMap<K extends Comparable, V> implements Map<K, V> {
             } else {
                 array = (T[]) Array.newInstance(a.getClass(), size);
             }
-            System.arraycopy(elements, 0, a, 0, size);
-            if (a.length > size) {
-                a[size] = null;
+            System.arraycopy(elements, 0, array, 0, size);
+            if (array.length > size) {
+                array[size] = null;
             }
             return array;
         }

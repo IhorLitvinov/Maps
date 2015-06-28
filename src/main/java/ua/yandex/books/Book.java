@@ -109,11 +109,13 @@ public class Book {
             List<String> booksNames = booksByTopic.get(topic);
             if (booksNames.size() > maxBooksNumber) {
                 topTopics.clear();
-                Tuple<Topic, List<String>> nextTuple = new Tuple(topic, booksNames);
+                Tuple<Topic, List<String>> nextTuple =
+                        new Tuple<>(topic, booksNames);
                 topTopics.add(nextTuple);
                 maxBooksNumber = booksNames.size();
             } else if (booksNames.size() == maxBooksNumber) {
-                Tuple<Topic, List<String>> nextTuple = new Tuple(topic, booksNames);
+                Tuple<Topic, List<String>> nextTuple =
+                        new Tuple<>(topic, booksNames);
                 topTopics.add(nextTuple);
             }
         }
